@@ -1,6 +1,7 @@
 ; заготовка "Доктора". Сентябрь 2026
 ; В учебных целях используется базовая версия Scheme
 #lang scheme/base
+(provide (all-defined-out))
 
 ; Подключаем Racket-библиотеки для векторов и списков, на всякий случай
 (require racket/vector)
@@ -46,7 +47,6 @@
                               (many people have the same sorts of feelings)
                               (many of my patients have told me the same thing)
                               (please continue)
-                              ; task 1 
                               (i see)
                               (that is very interesting)
                               (tell me more about it)
@@ -67,7 +67,6 @@
                                        (you feel that)
                                        (why do you believe that)
                                        (why do you say that)
-                                       ; task 1 
                                        (it seems to you that)
                                        (so you are saying that)
                                        (what makes you think that)
@@ -79,43 +78,39 @@
         )
  )
 
+; список пар для замены лица (в обе стороны)
+(define person-pairs
+  '((am are)
+    (are am)
+    (i you)
+    (me you)
+    (mine yours)
+    (my your)
+    (myself yourself)
+    (you i)
+    (your my)
+    (yours mine)
+    (yourself myself)
+    (we you)
+    (us you)
+    (our your)
+    (ours yours)
+    (ourselves yourselves)
+    (yourselves ourselves)
+    (shall will)))
+
 ; замена лица во фразе
 (define (change-person phrase)
-        (many-replace
-		'((am are)
-        (are am)
-        (i you)
-        (me you)
-        (mine yours)
-        (my your)
-        (myself yourself)
-        (you i)
-        (your my)
-        (yours mine)
-        (yourself myself)
-        (we you)
-        (us you)
-        (our your)
-        (ours yours)
-        (ourselves yourselves)
-        (yourselves ourselves)
-        (shall will))
-                      phrase)
- )
+  (many-replace person-pairs phrase))
 
-; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
+; замена одного слова: если слово есть в списке пар -- берём замену, иначе оставляем
+(define (replace-word word replacement-pairs)
+  (let ((pat-rep (assoc word replacement-pairs)))
+    (if pat-rep (cadr pat-rep) word)))
+
 (define (many-replace replacement-pairs lst)
-        (cond ((null? lst) lst)
-              (else (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
-                      (cons (if pat-rep (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
-                                (car lst) ; иначе в начале ответа помещается начало списка без изменений
-                            )
-                            (many-replace replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
-                        )
-                     )
-               )
-         )
-)
+  (map (lambda (word) (replace-word word replacement-pairs)) lst))
+
 ; в Racket нет vector-foldl, реализуем для случая с одним вектором (vect-foldl f init vctr)
 ; у f три параметра i -- индекс текущего элемента, result -- текущий результат свёртки, elem -- текущий элемент вектора
 (define (vector-foldl f init vctr)
