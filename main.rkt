@@ -91,6 +91,10 @@
    (make-strategy (lambda (user-response history) (< (length user-response) 3))
                   4
                   (lambda (user-response history) (short-answer)))
+   ; 6й способ (task 7): ответ по шаблону "i am X", "i feel X" и т.п.
+   (make-strategy (lambda (user-response history) (has-patterns? user-response))
+                  5
+                  (lambda (user-response history) (pattern-answer user-response)))
    ))
 
 ; task 6
@@ -108,6 +112,73 @@
                         (please tell me a bit more)
                         (could you explain what you mean ?)
                         (why so brief ?))))
+
+(define patterns-structure
+  '(
+    ( (i am)
+      ((how long have you been * ?)
+       (why are you * ?)
+       (do you believe it is normal to be * ?)
+       (do you enjoy being * ?)) )
+    ( (i feel)
+      ((why do you feel * ?)
+       (how often do you feel * ?)
+       (when did you first feel * ?)
+       (what makes you feel * ?)) )
+    ( (i want)
+      ((why do you want * ?)
+       (what would it mean to you if you got * ?)
+       (what if you never got * ?)) )
+    ( (i think)
+      ((do you really think * ?)
+       (why do you think * ?)
+       (are you sure * ?)) )
+    ( (i cannot)
+      ((what makes you think you cannot * ?)
+       (have you tried to * ?)
+       (perhaps you could * if you tried)) )
+    ( (i hate)
+      ((why do you hate * ?)
+       (have you always hated * ?)) )
+  )
+)
+
+; task 7
+(define (prefix? pattern lst)
+  (cond ((null? pattern) #t)
+        ((null? lst) #f)
+        ((equal? (car pattern) (car lst)) (prefix? (cdr pattern) (cdr lst)))
+        (else #f)))
+
+; task 7
+(define (pattern-tail pattern lst)
+  (cond ((null? lst) #f)
+        ((prefix? pattern lst)
+         (let ((tail (list-tail lst (length pattern))))
+           (if (null? tail) #f tail)))
+        (else (pattern-tail pattern (cdr lst)))))
+
+; task 7
+(define (matching-patterns user-response)
+  (filter (lambda (entry) (pattern-tail (car entry) user-response))
+          patterns-structure))
+
+; task 7
+(define (has-patterns? user-response)
+  (not (null? (matching-patterns user-response))))
+
+; task 7
+(define (splice-star template words)
+  (apply append
+         (map (lambda (word) (if (equal? word '*) words (list word)))
+              template)))
+
+; task 7
+(define (pattern-answer user-response)
+  (let* ((entry (pick-random-list (matching-patterns user-response)))
+         (tail (change-person (pattern-tail (car entry) user-response)))
+         (template (pick-random-list (cadr entry))))
+    (splice-star template tail)))
 
 ; task 5
 (define keywords-structure
