@@ -7,9 +7,31 @@
 (require racket/vector)
 (require racket/list)
 
-; основная функция, запускающая "Доктора"
-; параметр name -- имя пациента
-(define (visit-doctor name)
+; task 4
+; (visit-doctor 'suppertime 3)
+(define (visit-doctor stop-word max-patients)
+  (let loop ((served 0))
+    (if (>= served max-patients)
+        (print '(time to go home))
+        (let ((name (ask-patient-name)))
+          (if (equal? name stop-word)
+              (print '(time to go home))
+              (begin (doctor-session name)
+                     (newline)
+                     (loop (add1 served))))))))
+
+; task 4
+(define (ask-patient-name)
+  (print '(next!))
+  (newline)
+  (print '(who are you?))
+  (newline)
+  (let ((answer (read)))
+    (if (pair? answer)
+        (car answer)
+        (ask-patient-name))))
+
+(define (doctor-session name)
   (printf "Hello, ~a!\n" name)
   (print '(what seems to be the trouble?))
   (doctor-driver-loop name '()) ; task 3
@@ -17,7 +39,7 @@
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
-; task 3 
+; task 3
 (define (doctor-driver-loop name history)
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
@@ -34,7 +56,7 @@
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
-; task 3 
+; task 3
 (define (reply user-response history)
       (case (random 0 (if (null? history) 2 3))
           ((0) (hedge-answer))  ; 1й способ
@@ -131,7 +153,7 @@
   (let loop ((i 0) (result init))
    (if (= i length) result
     (loop (add1 i) (f i result (vector-ref vctr i)))))))
-	
+
 ; аналогично от конца вектора к началу
 (define (vector-foldr f init vctr)
  (let ((length (vector-length vctr)))
