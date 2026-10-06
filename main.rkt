@@ -56,14 +56,67 @@
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
-; task 3
+; task 3, task 5
 (define (reply user-response history)
-      (case (random 0 (if (null? history) 2 3))
-          ((0) (hedge-answer))  ; 1й способ
-          ((1) (qualifier-answer user-response)) ; 2й способ
-          ((2) (history-answer history)) ; 3й способ (task 3)
-      )
+  (let ((strategies (append '(hedge qualifier)
+                            (if (null? history) '() '(history))
+                            (if (has-keywords? user-response) '(keyword) '()))))
+    (case (pick-random-list strategies)
+      ((hedge) (hedge-answer))                          ; 1й способ
+      ((qualifier) (qualifier-answer user-response))    ; 2й способ
+      ((history) (history-answer history))              ; 3й способ (task 3)
+      ((keyword) (keyword-answer user-response)))))     ; 4й способ (task 5)
+
+; task 5
+(define keywords-structure
+  '(
+    ( (depressed suicide)
+      ((when you feel depressed go out for ice cream)
+       (depression is a disease that can be treated)
+       (have you talked to someone you trust about how you feel ?)) )
+    ( (mother father parents brother sister uncle aunt grandma grandpa)
+      ((tell me more about your *)
+       (why do you feel that way about your * ?)
+       (does your * know how you feel)
+       (what was your relationship with your * like when you were a child)) )
+    ( (university exams lectures studies)
+      ((your education is important)
+       (how much time do you spend on your studies ?)
+       (what worries you most about your *)) )
+    ( (friend friends girlfriend boyfriend)
+      ((tell me more about your *)
+       (do you trust your * ?)
+       (how did you meet your * ?)) )
+    ( (work job boss colleagues)
+      ((how do you feel about your * ?)
+       (does your * make you anxious ?)
+       (many people find their * stressful)) )
+  )
 )
+
+(define all-keywords
+  (remove-duplicates (apply append (map car keywords-structure))))
+
+(define (keyword? word)
+  (if (member word all-keywords) #t #f))
+
+(define (has-keywords? user-response)
+  (ormap keyword? user-response))
+
+(define (keywords-in user-response)
+  (filter keyword? user-response))
+
+(define (templates-for keyword)
+  (apply append
+         (map cadr
+              (filter (lambda (group) (member keyword (car group)))
+                      keywords-structure))))
+
+; task 5
+(define (keyword-answer user-response)
+  (let* ((keyword (pick-random-list (keywords-in user-response)))
+         (template (pick-random-list (templates-for keyword))))
+    (many-replace (list (list '* keyword)) template)))
 
 ; task 3
 (define (history-answer history)
