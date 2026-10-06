@@ -56,16 +56,58 @@
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
-; task 3, task 5
 (define (reply user-response history)
-  (let ((strategies (append '(hedge qualifier)
-                            (if (null? history) '() '(history))
-                            (if (has-keywords? user-response) '(keyword) '()))))
-    (case (pick-random-list strategies)
-      ((hedge) (hedge-answer))                          ; 1й способ
-      ((qualifier) (qualifier-answer user-response))    ; 2й способ
-      ((history) (history-answer history))              ; 3й способ (task 3)
-      ((keyword) (keyword-answer user-response)))))     ; 4й способ (task 5)
+  (let* ((applicable (filter (lambda (strategy)
+                               ((strategy-predicate strategy) user-response history))
+                             strategies))
+         (chosen (pick-random-with-weight applicable)))
+    ((strategy-body chosen) user-response history)))
+
+; task 6
+(define (make-strategy predicate weight body) (list predicate weight body))
+(define (strategy-predicate strategy) (car strategy))
+(define (strategy-weight strategy) (cadr strategy))
+(define (strategy-body strategy) (caddr strategy))
+
+(define strategies
+  (list
+   ; 1й способ
+   (make-strategy (lambda (user-response history) #t)
+                  1
+                  (lambda (user-response history) (hedge-answer)))
+   ; 2й способ
+   (make-strategy (lambda (user-response history) #t)
+                  2
+                  (lambda (user-response history) (qualifier-answer user-response)))
+   ; 3й способ (task 3)
+   (make-strategy (lambda (user-response history) (not (null? history)))
+                  1
+                  (lambda (user-response history) (history-answer history)))
+   ; 4й способ (task 5)
+   (make-strategy (lambda (user-response history) (has-keywords? user-response))
+                  3
+                  (lambda (user-response history) (keyword-answer user-response)))
+   ; 5й способ (task 6)
+   (make-strategy (lambda (user-response history) (< (length user-response) 3))
+                  4
+                  (lambda (user-response history) (short-answer)))
+   ))
+
+; task 6
+(define (pick-random-with-weight lst)
+  (let ((total (apply + (map strategy-weight lst))))
+    (let loop ((rest lst) (r (* (random) total)))
+      (if (or (null? (cdr rest))
+              (< r (strategy-weight (car rest))))
+          (car rest)
+          (loop (cdr rest) (- r (strategy-weight (car rest))))))))
+
+; task 6
+(define (short-answer)
+  (pick-random-vector #((could you say more ?)
+                        (please tell me a bit more)
+                        (could you explain what you mean ?)
+                        (why so brief ?))))
 
 ; task 5
 (define keywords-structure
