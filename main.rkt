@@ -1,47 +1,92 @@
 ; заготовка "Доктора". Сентябрь 2026
 ; В учебных целях используется базовая версия Scheme
 #lang scheme/base
-(provide (all-defined-out))
 
 ; Подключаем Racket-библиотеки для векторов и списков, на всякий случай
 (require racket/vector)
 (require racket/list)
 
+; Упражнение 4: "многопользовательский" Доктор
 ; основная функция, запускающая "Доктора"
+; параметр stop-word -- имя, при вводе которого доктор заканчивает работу (по умолчанию suppertime)
+; параметр max-patients -- сколько пациентов доктор примет, прежде чем закончить (по умолчанию 3)
+; можно вызывать как (visit-doctor), так и, например, (visit-doctor 'suppertime 5)
+(define (visit-doctor [stop-word 'suppertime] [max-patients 3])
+  (let loop ((patients-left max-patients))
+    (if (<= patients-left 0)
+        (print '(time to go home)) ; приняли всех, кого собирались
+        (let ((name (ask-patient-name)))
+          (cond ((equal? name stop-word)
+                 (print '(time to go home))) ; введено стоп-слово
+                (else
+                 (see-patient name)               ; приём одного пациента
+                 (loop (sub1 patients-left))))))) ; переход к следующему
+)
+
+; запрос имени очередного пациента (из PDF)
+; пациент вводит имя списком, например (Hal Abelson), берётся первое слово
+(define (ask-patient-name)
+  (newline)
+  (print '(next!))
+  (newline)
+  (print '(who are you?))
+  (newline)
+  (car (read))
+)
+
+; приём одного пациента -- то, что раньше делала visit-doctor
 ; параметр name -- имя пациента
-(define (visit-doctor name)
+(define (see-patient name)
   (printf "Hello, ~a!\n" name)
   (print '(what seems to be the trouble?))
-  (doctor-driver-loop name)
+  (doctor-driver-loop name '()) ; Упражнение 3: в начале приёма история реплик пуста
 )
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
-(define (doctor-driver-loop name)
+; Упражнение 3: параметр history -- список всех прошлых реплик пациента
+; (новые реплики добавляются в начало списка). set! не нужен:
+; при каждом рекурсивном вызове цикла передаётся новый, расширенный список.
+(define (doctor-driver-loop name history)
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
-      (cond 
+      (cond
 	    ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week)))
-            (else (print (reply user-response)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                  (doctor-driver-loop name)
+            (else (print (reply user-response history)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+                  (doctor-driver-loop name (cons user-response history)) ; запоминаем текущую реплику
              )
        )
       )
 )
 
-; генерация ответной реплики по user-response -- реплике от пользователя 
-(define (reply user-response)
-      (case (random 0 2) ; с равной вероятностью выбирается один из двух способов построения ответа
+; генерация ответной реплики по user-response -- реплике от пользователя
+; Упражнение 3: history -- список прошлых реплик пациента
+; Пока история пуста, третий способ невозможен, поэтому выбор идёт из двух способов;
+; когда история есть -- из трёх, с равной вероятностью
+(define (reply user-response history)
+      (case (random 0 (if (null? history) 2 3))
           ((0) (hedge-answer))  ; 1й способ
           ((1) (qualifier-answer user-response)) ; 2й способ
-
+          ((2) (history-answer history)) ; 3й способ (Упражнение 3)
       )
 )
 
+; Упражнение 3
+; 3й способ генерации ответной реплики -- случайная прошлая реплика пациента
+; с заменой лица и приписанным началом (earlier you said that)
+(define (history-answer history)
+  (append '(earlier you said that)
+          (change-person (pick-random-list history))))
+
+; случайный выбор одного из элементов непустого списка
+(define (pick-random-list lst)
+  (list-ref lst (random 0 (length lst))))
+
 ; 1й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
+; Упражнение 1: репертуар расширен с 4 до 10 фраз
 (define (hedge-answer)
        (pick-random-vector #((please go on)
                               (many people have the same sorts of feelings)
